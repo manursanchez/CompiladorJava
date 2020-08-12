@@ -1,0 +1,1003 @@
+package compiler.syntax;
+
+// DeclaraciÃ³n de importaciones 
+//(No modificar las proporcionadas. Se pueden agregar mas)
+
+import java_cup.runtime.Symbol;
+import java.util.*;
+
+import es.uned.lsi.compiler.lexical.*;
+import es.uned.lsi.compiler.code.*;
+import es.uned.lsi.compiler.intermediate.*;
+import es.uned.lsi.compiler.semantic.*;
+import es.uned.lsi.compiler.semantic.symbol.*;
+import es.uned.lsi.compiler.semantic.type.*;
+import es.uned.lsi.compiler.syntax.*;
+
+import compiler.CompilerContext;
+import compiler.lexical.*;
+import compiler.syntax.nonTerminal.*;
+import compiler.semantic.*;
+import compiler.semantic.symbol.*;
+import compiler.semantic.type.*;
+import compiler.intermediate.*;
+import compiler.code.*;
+import compiler.soporte.Soporte;
+import compiler.soporte.SoporteCI;
+
+
+
+// DeclaraciÃ³n del cÃ³digo de usuario
+
+action code   {:
+	
+	SyntaxErrorManager   syntaxErrorManager   = CompilerContext.getSyntaxErrorManager();
+	SemanticErrorManager semanticErrorManager = CompilerContext.getSemanticErrorManager ();
+	ScopeManagerIF       scopeManager         = CompilerContext.getScopeManager ();
+	FinalCodeFactoryIF   finalCodeFactory     = CompilerContext.getFinalCodeFactory ();
+
+	
+	//Lista para almacenar cuádruplas de cadenas de caracteres
+	List<QuadrupleIF> listaCadenas = new ArrayList<QuadrupleIF>();
+:}	
+
+parser code {:
+	SyntaxErrorManager syntaxErrorManager = CompilerContext.getSyntaxErrorManager();
+	
+	public void syntax_error(Symbol symbol)
+	{ 
+	    Token token = (Token) symbol.value;
+	    syntaxErrorManager.syntaxError ("Error sintactico", token);	    
+	}
+		
+	public void unrecovered_syntax_error(java_cup.runtime.Symbol symbol)
+	{	
+	    Token token = (Token) symbol.value;
+	    syntaxErrorManager.syntaxFatalError ("Error fatal", token);
+	}
+:}
+
+
+//
+// DeclaraciÃ³n de terminales
+
+//
+terminal Token IDENTIFICADOR;
+terminal Token INTEGER, BOOLEAN, STRING;
+terminal Token ARRAY, OF;
+terminal Token MODULE, BEGIN, END, PROCEDURE, RETURN;
+terminal Token OR, NOT;
+terminal Token CONST, TYPE, VAR;
+terminal Token IF, ELSE, THEN, DO, FOR, TO;
+terminal Token WRITESTRING, WRITEINT, WRITELN;
+
+terminal Token PARENIZQ, PARENDER, CORCHIZQ, CORCHDER;
+terminal Token PUNTOPUNTO, COMA, PUNTOYCOMA, DOSPUNTOS, IGUAL;
+terminal Token MINUS, PRODUCTO, MAYOR;
+terminal Token DOSPUNTOSIGUAL;
+
+terminal Token ENTERO;
+terminal Token TRUE, FALSE;
+
+
+//
+// DeclaraciÃ³n de no terminales
+//
+non terminal            	program;
+non terminal Axiom			axiom;
+
+non terminal CabModule      cabModule;
+non terminal Cuerpo         cuerpo;
+
+non terminal StmConstantes stmConstantes;
+non terminal              	stmTipos;
+non terminal                stmVar;
+non terminal         		stmSubprogram;
+
+non terminal SentConst     	sentConst;
+non terminal              	expConst;
+non terminal ValorConst    	valorConst;
+
+non terminal              	sentTipo;
+non terminal               	expTipo;
+
+non terminal               	sentVar;
+non terminal                expVar;
+non terminal CadIdVar     	cadIdVar;
+non terminal TipoVar       	tipoVar;
+
+non terminal CabProcedure		cabProcedure;
+non terminal TipoRetorno  		tipoRetorno;
+non terminal ProcParenParam     procParenParam;
+non terminal ProcListParam      procListParam;
+non terminal ProcParam   		procParam;
+
+non terminal Sentencias         sentencias;
+non terminal ListSentencia      listSentencia;
+non terminal Sentencia          sentencia;
+
+non terminal Expresion   expresion;
+non terminal ExprArit     exprArit;
+non terminal ExprLogica exprLogica;
+non terminal Variables   variables;
+
+non terminal SentProcedure sentProcedure;
+non terminal ParFuncion       parFuncion;
+non terminal Parametros       parametros;
+
+non terminal SentAsign     sentAsign;
+non terminal SentReturn   sentReturn;
+non terminal SentIf           sentIf;
+non terminal SentElse       sentElse;
+non terminal SentFor         sentFor;
+
+non terminal SentWriteS sWriteString;
+non terminal SentWriteI    sWriteInt;
+non terminal SentWriteLn    sWriteLn;
+
+non terminal IdArray       idArray;
+non terminal IntOBool     intOBool;
+non terminal EntOid         entOid;
+non terminal ValorBooleano  vBooleano;
+
+
+
+// Declaracion de relaciones de precedencia
+precedence nonassoc MAYOR, IGUAL;
+precedence left     MINUS, OR;
+precedence left     PRODUCTO;
+precedence right    NOT;
+
+precedence left     PARENIZQ, PARENDER, CORCHIZQ, CORCHDER;
+
+
+
+//
+// Declaracion de reglas de produccion
+
+
+start with program;
+program ::= 
+  {: 
+	 syntaxErrorManager.syntaxInfo ("Starting parsing..."); 
+	 Soporte.creaAmbito("AmbitoGlobal");
+  	
+	:}
+  axiom:ax
+  {: 
+		
+		// No modificar esta estructura, aunque se pueden aÃ±adir mÃ¡s acciones semÃ¡nticas
+	  	//SoporteCI.listarCuadruplas("CÓDIGO INTERMEDIO EN EL AXIOM: ",ax.getIntermediateCode());
+	 	int gAddress=Soporte.gestionDeMemoria();
+	 	
+	  	SoporteCI.listarCuadruplas("CÓDIGO: ",ax.getIntermediateCode());
+	  	
+	 	List <QuadrupleIF> intermediateCode = ax.getIntermediateCode ();
+		finalCodeFactory.setEnvironment(CompilerContext.getExecutionEnvironment());
+		finalCodeFactory.create (intermediateCode);
+	 	
+		
+  		//List intermediateCode = ax.getIntermediateCode ();
+  		//finalCodeFactory.create (intermediateCode);
+
+  		// En caso de no comentarse las dos sentencias anteriores puede generar una excepcion
+  		// en las llamadas a cupTest si el compilador no estÃ¡ completo. Esto es debido a que 
+  		// aÃºn no se tendrÃ¡ implementada la generaciÃ³n de cÃ³digo intermedio ni final.
+  		// Para la entrega final deberÃ¡n descomentarse y usarse.
+  		
+  		syntaxErrorManager.syntaxInfo ("Parsing process ended.");
+  :};
+
+axiom ::= cabModule:cM cuerpo:c
+			{:
+				
+				//Comprueba el nombre de inicio y de fin del módulo principal
+				Soporte.comprobarNombresProgramas(cM.getNombrePrograma(),c.getNombrePrograma());
+				Principal ax=new Principal(c);
+				ax.setIntermediateCode(c.getIntermediateCode());
+			
+				RESULT=ax;
+			:}
+                      
+                | cabModule error {:semanticErrorManager.semanticFatalError("Error en cabModule");:}
+				  ;
+
+// Cabecera de los modulos
+
+
+cabModule     ::= MODULE IDENTIFICADOR:id PUNTOYCOMA
+                 {:	
+					String identificador=id.getLexema().toUpperCase();
+					Soporte.gestionNombrePrograma(identificador);
+					CabModule cM=new CabModule(identificador);
+                 	RESULT=cM;
+                 :}     
+                | MODULE error{:semanticErrorManager.semanticFatalError("Error en MODULE");:}
+                      ;
+
+// Cuerpo de los modulos y comun para procedimientos y funciones
+
+
+cuerpo        ::= stmConstantes stmTipos stmVar stmSubprogram BEGIN sentencias:sents END IDENTIFICADOR:id
+				{:	
+					String identificador=id.getLexema().toUpperCase();
+					//Aquí es donde tengo que comprobar:
+					//1-Que el símbolo sea una funcion
+					//2-que haya un RETURN
+					//3-Que el tipo del return sea igual al tipo de la funcion.
+					Soporte.comprobarReturn(sents,identificador);
+					Cuerpo body=new Cuerpo(identificador);
+					
+					//Recojo el CI que viene de abajo. Si hay sentencias
+					if(sents!=null)
+						body.setIntermediateCode(sents.getIntermediateCode());
+					//Gestión de las cuadruplas para agregar las etiquetas 
+					//de las cadenas de caracteres de la Instruccion WRITESTRING
+					body=SoporteCI.agregarDatasCI(body,listaCadenas);
+					RESULT=body;
+					
+					scopeManager.closeScope();
+				:}
+				 PUNTOYCOMA
+                      
+                | stmConstantes stmTipos stmVar stmSubprogram BEGIN sentencias END error
+                      {:semanticErrorManager.semanticFatalError("Error en cuerpo sentencias");:}
+                | stmConstantes stmTipos stmVar stmSubprogram BEGIN error
+                {:semanticErrorManager.semanticFatalError("Error en cuerpo sentencias");:}
+                      ;
+
+// Reglas de produccion para constantes
+
+
+stmConstantes ::= CONST sentConst   
+                | // epsilon
+                | CONST error ;
+
+sentConst     ::= sentConst expConst
+                 |expConst;
+
+expConst      ::= IDENTIFICADOR:id IGUAL valorConst:vC PUNTOYCOMA
+
+                {:
+					String identificador=id.getLexema().toUpperCase();
+					Soporte.gestionSimboloConstante(identificador,vC.gettValor());
+				:}
+                      
+                | IDENTIFICADOR error PUNTOYCOMA
+                      ;
+
+valorConst    ::= ENTERO:numero
+				{:
+					ValorConst vC=new ValorConst(numero.getLexema());
+                	RESULT = vC;
+                :}
+                | vBooleano:vB
+                {:
+                	ValorConst vC=new ValorConst(vB.getvBoolean());
+                	RESULT = vC;
+                :}
+                      ;
+
+// Reglas de produccion para Tipos
+
+
+stmTipos      ::= TYPE sentTipo
+                | // epsilon
+                | TYPE error
+                      ;
+
+sentTipo      ::= sentTipo expTipo
+                | expTipo
+                      ;
+
+expTipo       ::= IDENTIFICADOR:idMatriz IGUAL ARRAY CORCHIZQ entOid:eOi1 PUNTOPUNTO entOid:eOi2 CORCHDER OF intOBool:iOB PUNTOYCOMA
+                  {:
+                  	String identificador=idMatriz.getLexema().toUpperCase();
+					Soporte.gestionSimboloArray(identificador,eOi1,eOi2,iOB);
+                  :}
+                | IDENTIFICADOR error PUNTOYCOMA
+                      ;
+
+// Reglas de produccion para Variables
+
+
+stmVar        ::= VAR sentVar
+                       
+                | // epsilon
+                | VAR error
+                      ;
+
+sentVar       ::= sentVar expVar
+                      
+                | expVar
+                      ;
+
+expVar        ::= cadIdVar:cIV DOSPUNTOS tipoVar:tV PUNTOYCOMA 
+				//aquí uno el nombre y el tipo y lo meto en TS
+				{:
+					Soporte.gestionSimboloVariable(cIV.getListaVariables(),tV.getTipo());
+				:}
+                      
+                | cadIdVar error PUNTOYCOMA
+                      ;
+
+cadIdVar      ::= IDENTIFICADOR:id COMA cadIdVar:cIV
+                     {:
+                     	String identificador=id.getLexema().toUpperCase();
+						cIV.agregarVariable(identificador);
+                     	RESULT=cIV;
+                     :} 
+                | IDENTIFICADOR:id
+                	{:
+                		String identificador=id.getLexema().toUpperCase();
+						CadIdVar cIV = new CadIdVar();
+                		cIV.agregarVariable(identificador);
+                     	RESULT=cIV;
+                     :}
+                      ;
+
+tipoVar       ::= intOBool:iob
+                  {:
+                	TipoVar tv = new TipoVar(iob.getTipoVariable());
+                     RESULT=tv;
+                   :}
+                | IDENTIFICADOR:idNombreTipo 
+                //Este ID tiene que ser tipo array y ha de existir en
+                //alguna tabla de simbolos de todos los ambitos
+                {:
+                	String identificador=idNombreTipo.getLexema().toUpperCase();
+					SymbolIF idTipoArray=Soporte.identificadorDeTipo(identificador);
+                	RESULT=new TipoVar(idTipoArray.getName());
+                :}
+                      ;
+
+// Reglas de produccion para Procedimientos y funciones
+
+
+stmSubprogram  ::=  cabProcedure:cP cuerpo:c stmSubprogram
+					{:
+						//Comprueba el nombre de inicio y de fin del subprograma
+						Soporte.comprobarNombresProgramas(cP.getNombrePrograma(),c.getNombrePrograma());
+					:}
+                     
+                | // epsilon
+                      ;
+
+cabProcedure   ::= PROCEDURE IDENTIFICADOR:id procParenParam:pPP tipoRetorno:tR PUNTOYCOMA
+					{:	
+						String identificador=id.getLexema().toUpperCase();
+						Soporte.gestionSimboloProcFun(identificador,tR);
+						//creo el ámbito de la función
+						Soporte.creaAmbito(identificador);
+						Soporte.gestionParametros(pPP);
+						//envío el nombre de la función para su comprobación
+						RESULT=new CabProcedure(identificador);
+					:}
+                      
+                |  PROCEDURE IDENTIFICADOR error 
+                      
+                |  PROCEDURE error
+                      ;
+
+procParenParam ::= PARENIZQ procListParam:pLP PARENDER
+					{:
+						ProcParenParam pPP=new ProcParenParam(pLP);
+						RESULT=pPP;
+					:}          
+                | // epsilon
+                      ;  // epsilon
+
+procListParam  ::= procParam:pP PUNTOYCOMA procListParam:pLP
+                    //agrego el parametro a la lista del objeto ProcListaParam
+                	{:
+                		if(pLP==null) syntaxErrorManager.syntaxFatalError("Hay un punto y coma pero no hay lista de parámetros");
+                		pLP.agregarObjetoConListaParametros(pP);
+                		RESULT=pLP;
+                	:}
+                	
+                |  procParam:pP
+                    //creo el objeto ProcListaParam
+                    //agrego el  parametro a la lista del objeto ProcListParam
+                    {:
+                    	ProcListParam pLP = new ProcListParam();
+                		pLP.agregarObjetoConListaParametros(pP);
+                    	RESULT=pLP;
+                    :}
+                      
+                |  // epsilon
+                      ;  // epsilon
+
+procParam      ::= cadIdVar:cIV DOSPUNTOS tipoVar:tV
+            
+                   {:
+                   		RESULT=new ProcParam(cIV.getListaVariables(),tV.getTipo());		
+                   :}
+                      
+                |  cadIdVar error PUNTOYCOMA  
+                      ;
+
+tipoRetorno    ::= DOSPUNTOS intOBool:iob
+                   {:
+                   		RESULT=new TipoRetorno(iob.getTipoVariable());
+                   :}   
+                |  // epsilon
+                        // epsilon
+                |  DOSPUNTOS error PUNTOYCOMA 
+                      ;
+
+// expresion logicas y aritmeticas.
+
+
+expresion     ::= exprArit:eA
+				{:
+					Expresion exp=new Expresion(eA.getTipo());
+					//CI
+					exp=SoporteCI.generarCIexp(exp,eA);
+					//Fin CI				
+					exp.setIntermediateCode(eA.getIntermediateCode());
+					RESULT=exp;
+				:}
+                      
+                | exprLogica:eL
+                {:
+                	Expresion exp=new Expresion(eL.getTipo());
+					exp=SoporteCI.generarCIexp(exp,eL);	
+					exp.setIntermediateCode(eL.getIntermediateCode());
+					RESULT=exp;
+                :}
+                      
+                | PARENIZQ expresion:exp PARENDER
+                {:
+					RESULT=exp;
+				:}      
+                | variables:var
+                {:
+					Expresion exp=new Expresion(var.getTipo());
+					exp.setArray(var.isDirArray());//Se actualiza el atributo que indica si la
+												// expresión es una dirección de array.
+					//CI
+					exp.setIntermediateCode(var.getIntermediateCode());
+					exp.setTemporal(var.getTemporal());
+					//Fin CI
+                	RESULT=exp;
+				:}   
+                      ;
+
+// Reglas de produccion para expresiones aritméticas.
+
+exprArit      ::= expresion:exp1 MINUS expresion:exp2
+					{:
+						TypeIF tipoEntero=scopeManager.searchType("Integer");
+						//comparar las expresiones
+						Soporte.compararExpresiones(exp1,exp2);
+						//Devolvemos un tipo entero
+						ExprArit eA=new ExprArit(tipoEntero);
+						
+						//CÓDIGO INTERMEDIO
+						eA=SoporteCI.generarCIeAresta(exp1,exp2,eA);
+						//FIN CI
+						
+						RESULT=eA;
+					:}
+                      
+                | expresion:exp1 PRODUCTO expresion:exp2
+                    {:
+                    	TypeIF tipoEntero=scopeManager.searchType("Integer");
+                    	Soporte.compararExpresiones(exp1,exp2);
+						ExprArit eA=new ExprArit(tipoEntero);
+						//CI
+						eA=SoporteCI.generarCIeAproducto(exp1,exp2,eA);
+						//Fin CI						
+
+						RESULT=eA;
+					:}
+                | ENTERO:numero
+                {:
+                	TypeIF tipo=scopeManager.searchType("Integer");
+					ExprArit eA=new ExprArit(tipo);
+
+					//Generar CI
+					eA=SoporteCI.generarCIeAentero(eA,numero.getLexema());
+					
+					RESULT = eA;
+                :}
+                ;
+
+// Reglas de produccion para expresiones logicas.
+
+
+exprLogica    ::= expresion:exp1 MAYOR expresion:exp2
+                {:
+                	TypeIF tipoLogico=scopeManager.searchType("Boolean");
+                	//comparar las expresiones
+					Soporte.compararExpresiones(exp1,exp2);
+					//Devolvemos un tipo logico
+					ExprLogica eL=new ExprLogica(tipoLogico);
+					
+					//CI
+					eL=SoporteCI.generarCImayorQue(exp1,exp2,eL);
+					//Fin CI
+
+					RESULT=eL;
+				:}    
+                | expresion:exp1 IGUAL expresion:exp2
+ 				{:
+ 					TypeIF tipoLogico=scopeManager.searchType("Boolean");
+ 					//comparar las expresiones
+					Soporte.compararExpresiones(exp1,exp2);
+					ExprLogica eL=new ExprLogica(tipoLogico);
+					//CI
+					eL=SoporteCI.generarCIeLigual(exp1,exp2,eL);
+					//Fin CI
+					RESULT=eL;
+				:}                     
+                | expresion:exp1 OR expresion:exp2
+                 {:
+                	 TypeIF tipoLogico=scopeManager.searchType("Boolean");
+                	 //comparar las expresiones
+					Soporte.compararExpresiones(exp1,exp2);
+					ExprLogica eL=new ExprLogica(tipoLogico);
+					//CI
+					eL=SoporteCI.generarCIeLOR(exp1,exp2,eL);
+					//Fin CI
+					
+					RESULT=eL;
+				:}     
+                | NOT expresion:exp
+                {: 
+                	TypeIF tipoLogico=scopeManager.searchType("Boolean");
+                	ExprLogica eL=new ExprLogica(tipoLogico);
+					
+					//CI
+					eL=SoporteCI.generarCIeLNOT(exp,eL);
+					//Fin CI
+
+					RESULT=eL;
+                :}     
+                | vBooleano:vB
+                {:
+                	ExprLogica eL=new ExprLogica(vB.getTipo());
+					
+					//Generar CI
+					eL=SoporteCI.generarCIeLboolean(eL,vB);
+
+					RESULT=eL;
+                :}
+                      ;
+
+// Reglas para sentencias.
+
+
+sentencias    ::= listSentencia:lSents PUNTOYCOMA
+				{:
+					Sentencias s=new Sentencias(lSents.getListaSentencias());
+					s.setIntermediateCode(lSents.getIntermediateCode());
+					//SoporteCI.listarCuadruplas("Resultado de la agregación en Sentencias: ",s.getIntermediateCode());
+					RESULT=s;
+				:}
+                      
+                | listSentencia:lSents
+                {:
+                	Sentencias s=new Sentencias(lSents.getListaSentencias());
+					s.setIntermediateCode(lSents.getIntermediateCode());
+                	RESULT=s;
+                :}
+                       
+                |  // epsilon
+                      ;  // epsilon
+
+listSentencia ::= listSentencia:lS PUNTOYCOMA sentencia:sent
+				{:
+					lS.agregarSentencia(sent);
+					ScopeIF scope=scopeManager.getCurrentScope();
+					IntermediateCodeBuilder cb=new IntermediateCodeBuilder(scope);
+
+					cb.addQuadruples(lS.getIntermediateCode());
+					cb.addQuadruples(sent.getIntermediateCode());
+					lS.setIntermediateCode(cb.create());
+					//SoporteCI.listarCuadruplas("Resultado de la agregación en listaSentencia: ",lS.getIntermediateCode());
+					RESULT=lS;
+				:}
+                      
+                | sentencia:sent
+                {:
+                	ListSentencia lS=new ListSentencia();
+                	lS.agregarSentencia(sent);
+                	//CI
+                	ScopeIF scope=scopeManager.getCurrentScope();
+                	IntermediateCodeBuilder cb=new IntermediateCodeBuilder(scope);
+					
+					cb.addQuadruples(sent.getIntermediateCode());
+					cb.addQuadruples(lS.getIntermediateCode());
+					lS.setIntermediateCode(cb.create());
+                	RESULT=lS;
+                :}
+                      ;
+
+sentencia     ::= sentAsign:sA
+				{:
+					Sentencia s=new Sentencia("ASIGNACION",sA);
+					s.setIntermediateCode(sA.getIntermediateCode());
+					RESULT=s;
+				:}
+                | sentIf:sIF
+                {:
+                	Sentencia s=new Sentencia("IF",sIF);
+					s.setIntermediateCode(sIF.getIntermediateCode());
+					RESULT=s;
+                :}
+                      
+                | sentFor:sFOR
+                {:
+                	Sentencia s=new Sentencia("FOR",sFOR);
+					s.setIntermediateCode(sFOR.getIntermediateCode());
+					RESULT=s;
+                :}
+                      
+                | sentReturn:sR
+                {:
+                	RESULT=new Sentencia("RETURN",sR.getTipo());
+                :}
+                      
+                | sWriteString:sWR
+                {:
+                	Sentencia s=new Sentencia("WRITESTRING",sWR.getCadena());
+					s.setIntermediateCode(sWR.getIntermediateCode());
+                	RESULT=s;
+                :}
+                      
+                | sWriteInt:sWI
+                {:
+                	Sentencia s=new Sentencia("WRITEINT",sWI.getExpresion());
+					s.setIntermediateCode(sWI.getIntermediateCode());
+					RESULT=s;
+                :}
+                      
+                | sWriteLn:sWL
+                {:
+                	Sentencia s=new Sentencia("WRITELN");
+					s.setIntermediateCode(sWL.getIntermediateCode());
+					RESULT=s;
+                :}
+                      
+                | sentProcedure:sP
+                {:
+                	RESULT=new Sentencia("PROCEDIMIENTO",sP);
+                :}
+                      ;
+
+// Sentencias Return
+
+
+sentReturn     ::= RETURN expresion:exp
+					{:
+						RESULT=new SentReturn(exp.getTipoExpresion());
+					:}
+                      
+                |  RETURN error PUNTOYCOMA
+                {:
+                	syntaxErrorManager.syntaxFatalError("Faltan datos en el RETURN");
+                :}
+                      ;
+
+// Sentencias de Asignacion
+
+
+sentAsign     ::= variables:var DOSPUNTOSIGUAL expresion:exp
+                   {:
+                	  
+                	//comparar los tipos de variables y expresion
+                   	Soporte.compararAsignaciones(var,exp);
+					SentAsign sA=new SentAsign(var,exp);
+					
+					//CI
+					sA=SoporteCI.generarCIasignacion(var,exp,sA);
+					//FIN DE CI		
+					RESULT=sA;
+                   :}
+                      
+                | variables error PUNTOYCOMA 
+                {:
+                	syntaxErrorManager.syntaxFatalError("Error en las variables de asignación");
+                :}
+                      ;
+
+// Sentencia IF-ELSE
+
+
+sentIf        ::= IF expresion:exp THEN sentencias:sents sentElse:sElse END
+				{:
+					//Comprobar que la expresion sea booleana
+					Soporte.comprobarTipo(exp.getTipoExpresion(),"Boolean");
+					SentIf sIF=new SentIf(exp,sents,sElse);
+					
+					//CI///////////////////////////////////
+					sIF=SoporteCI.generarCIif(sIF,exp,sents,sElse);
+					//Fin CI*/
+
+					RESULT=sIF;
+				:}
+                | IF expresion error
+                {:
+                	syntaxErrorManager.syntaxFatalError("Error en sentencia IF");
+                :}
+                      
+                | IF error PUNTOYCOMA
+                {:
+                	syntaxErrorManager.syntaxFatalError("Error en sentencia IF");
+                :}
+		;
+
+sentElse      ::= ELSE sentencias:sents
+				{:
+					SentElse sElse=new SentElse("ELSE",sents);
+					sElse.setIntermediateCode(sents.getIntermediateCode());
+					RESULT=sElse;
+				:}
+                      
+                |  // epsilon
+                      ;
+
+// Sentencia FOR 
+
+
+sentFor       ::= FOR IDENTIFICADOR:idInt DOSPUNTOSIGUAL expresion:exp1 TO expresion:exp2 DO sentencias:sents END
+				{:
+					String identificador=idInt.getLexema().toUpperCase();
+					ScopeIF ambito=scopeManager.getCurrentScope();
+					SymbolIF simbolo=Soporte.buscarSimbolo(ambito,identificador);
+					TypeIF tipoID=Soporte.extraerLosTipos(simbolo);
+					Soporte.comprobarTipo(tipoID,"Integer");
+					Soporte.comprobarTipo(exp1.getTipoExpresion(),"Integer");
+					Soporte.comprobarTipo(exp2.getTipoExpresion(),"Integer");
+					SentFor sF=new SentFor(simbolo,exp1,exp2,sents);
+					
+					/////CI//////////////////////////////////////////////
+					sF=SoporteCI.generarCIfor(sF,simbolo,exp1,exp2,sents);
+					//FIN CI////////////////////////////////////////////
+					RESULT=sF;
+				:}
+                | FOR IDENTIFICADOR DOSPUNTOSIGUAL expresion TO expresion error PUNTOYCOMA 
+                      
+                | FOR error PUNTOYCOMA
+                      ;
+
+// Sentencia llamada Funcion o Procedimiento
+
+
+sentProcedure ::= IDENTIFICADOR:id
+				{:
+					String identificador=id.getLexema().toUpperCase();
+					//Comprobar que es un procedimiento
+					ScopeIF ambito=scopeManager.getCurrentScope();
+					SymbolIF simbolo=Soporte.buscarSimbolo(ambito,identificador);
+					
+					//Soporte.conOsinParametros(simbolo,ambito);
+					if(!(simbolo instanceof SymbolProcedure) || simbolo instanceof SymbolFunction) {
+						semanticErrorManager.semanticFatalError("El símbolo: '"+simbolo.getName()+"', no es una sentencia válida.");
+					}
+					//Comprobar si la llamada ha de llevar parametros
+					Soporte.comprobarListaParametros(simbolo,ambito);
+					
+					RESULT=new SentProcedure(simbolo);
+				:}
+                | IDENTIFICADOR:id parFuncion:pF
+                {:
+                	String identificador=id.getLexema().toUpperCase();
+					ScopeIF ambito=scopeManager.getCurrentScope();
+                	SymbolIF simbolo=Soporte.buscarSimbolo(ambito,identificador);
+                	//Comprobamos que no sea una función
+                	if(simbolo instanceof SymbolFunction) {
+						semanticErrorManager.semanticFatalError("El símbolo: '"+simbolo.getName()+"', no es una sentencia válida. "
+								+ "Es una función, no un procedimiento.");
+					}
+                	//Comprobamos parametros y su lista
+                	Soporte.compararListasParametros(simbolo,pF);
+                	SentProcedure sP;
+                	if(pF==null)
+                	{	
+                		sP=new SentProcedure(simbolo);
+                	}else {	
+                		sP=new SentProcedure(simbolo,pF.getLista());
+                	}
+					RESULT=sP;
+                :}
+                      ;
+
+// Parametros de llamada a funcion
+
+
+parFuncion    ::= PARENIZQ parametros:par PARENDER
+                {:
+                	//Se copia la lista y se propaga.
+                	ArrayList<String> lista=par.getLista();
+                	RESULT=new ParFuncion(lista);	
+                :}
+                | PARENIZQ PARENDER
+                      
+                | PARENIZQ error 
+                      ;
+
+parametros    ::= parametros:par COMA expresion:exp
+                 {:              
+                 	//agregar el tipo de la exprsion en la lista
+                 	Soporte.agregarParametro(exp,par);
+                 	RESULT=par;
+                 :}              
+                | expresion:exp
+                {:	
+                	Parametros par = new Parametros();
+                	Soporte.agregarParametro(exp,par);
+                	//Agregar el tipo de la expresion en la lista
+                	RESULT=par;
+                :}
+                      ;
+
+// Sentencias de Salida.
+
+
+sWriteString  ::= WRITESTRING PARENIZQ STRING:cadena PARENDER
+				{:
+					SentWriteS sWs=new SentWriteS(cadena.getLexema());
+					
+					//////////////////CI/////////////
+					sWs=SoporteCI.generarCIWrString(sWs,listaCadenas,cadena.getLexema());
+					////////////////////////////////
+					RESULT=sWs;
+				:}
+                      
+                | WRITESTRING error PUNTOYCOMA   
+                      ;
+
+sWriteInt     ::= WRITEINT PARENIZQ expresion:exp PARENDER
+				{:
+					//Esta expresion ha de ser de tipo entero
+					Soporte.comprobarTipo(exp.getTipoExpresion(),"Integer");
+					
+					//CI
+					SentWriteI sWi=new SentWriteI(exp);
+					sWi=SoporteCI.generarCIsWi(sWi,exp);					
+					//FIN CI
+
+					RESULT=sWi;
+				:}
+                      
+                | WRITEINT error PUNTOYCOMA
+                      ;
+
+sWriteLn      ::= WRITELN
+				{:
+					SentWriteLn sWln=new SentWriteLn();
+					
+					sWln=SoporteCI.generarCIWln(sWln,listaCadenas);
+					
+					RESULT=sWln;
+				:}
+                      ;
+
+// Tipos Basicos
+
+
+variables     ::= IDENTIFICADOR:id
+				{:
+					String identi=id.getLexema().toUpperCase(); //¡Cuidado con el nombre del identificador!
+					//tiene que existir el identificador
+					ScopeIF ambito=scopeManager.getCurrentScope();
+                	SymbolIF identificador=Soporte.buscarSimbolo(ambito,identi);
+                	
+                	//Comprobar si es una funcion y su llamada ha de llevar parametros
+					if(identificador instanceof SymbolFunction) {
+						Soporte.comprobarListaParametros(identificador,ambito);
+					}
+					//Si todo ha ido bien, creamos el objeto
+					Variables v=new Variables(identificador.getType(),identificador);
+					
+                	///Llamada para generar CI
+					v=SoporteCI.generarCIvariablesID(ambito,v);
+					//FIN CI
+					RESULT=v;
+				:}
+                      
+                | IDENTIFICADOR:id idArray:iA
+                {:
+                	String identi=id.getLexema().toUpperCase(); //¡Cuidado con el nombre del identificador!
+					//El id tiene que existir y ser de tipo array                	
+                	ScopeIF ambito=scopeManager.getCurrentScope();
+                	SymbolIF identificador=Soporte.buscarSimbolo(ambito,identi);
+					if (!(identificador instanceof SymbolArray)) {
+						semanticErrorManager.semanticFatalError("El identificador no es un array");
+					}                	
+					//idArray tiene que ser de tipo entero por que es una expresión
+                	//que indica una posicion del array.
+                	//Ya viene comprobado el tipo desde su producción.
+   					                	
+                	//Mediante la función extraerTipoPrimitivo, sacamos el tipo
+                	//de datos que almacena el array (enteros o booleanos).   
+                	Variables v=new Variables(Soporte.extraeTipoPrimitivo(identificador),identificador);
+					
+					//CI///////////
+					v=SoporteCI.generarCIarray(ambito,v,identificador,iA);
+			     	
+                	RESULT=v;
+                :}  
+                   
+                | IDENTIFICADOR:id parFuncion:pF
+                {:
+                	String identi=id.getLexema().toUpperCase(); //¡Cuidado con el nombre del identificador!
+					//////Control del IDENTIFICADOR//////
+                	//1-El id tiene que existir 
+                	//2-Tiene que ser una funcion
+                	//3-Extraemos el tipo.
+                	ScopeIF ambito=scopeManager.getCurrentScope();
+                	SymbolIF identificador=Soporte.buscarSimbolo(ambito,identi);
+                	TypeIF tipo=Soporte.extraeTipo(identificador);
+                	
+                	//////Control de los parametros//////
+                	//Comprobamos los parametros usando las dos listas
+                	Soporte.compararListasParametros(identificador,pF);
+                	 	
+                	RESULT= new Variables(tipo,identificador);
+                :}
+                      ;
+
+idArray       ::= CORCHIZQ expresion:exp CORCHDER
+					{:
+						//devolver el tipo, que tiene que ser entero
+						//Hay que tener en cuenta que la expresion es
+						//una posición del array
+						//Comprobamos el tipo de exp
+						Soporte.comprobarTipo(exp.getTipoExpresion(),"Integer");
+						//Creamos el objeto y lo propagamos, si todo está bien
+						IdArray iA=new IdArray(exp);
+						//CI
+						iA=SoporteCI.generarCIidArray(iA,exp);
+						//FIN CI
+						RESULT=iA;
+					:}
+                      ;
+
+intOBool      ::= INTEGER:entero
+                     {:
+                     	IntOBool iob = new IntOBool(entero.getLexema());
+                     	RESULT=iob;
+                     :}
+                | BOOLEAN:bool
+                	{:
+                		IntOBool iob = new IntOBool(bool.getLexema());
+                     	RESULT=iob;
+                     :}
+                      ;
+
+entOid        ::= ENTERO:numero
+				{:
+					RESULT=new EntOid(numero.getLexema());
+				:}
+                       
+                | IDENTIFICADOR:id
+                {:
+                	String identificador=id.getLexema().toUpperCase();
+					ScopeIF ambito=scopeManager.getCurrentScope();
+                	SymbolConstant simboloConstante=(SymbolConstant)Soporte.buscarSimbolo(ambito,identificador);
+                	RESULT=new EntOid(simboloConstante);
+                :}
+                      ;
+
+// Constantes Booleanas.
+
+
+vBooleano     ::= TRUE:vLogico
+				{:
+					ValorBooleano vB=new ValorBooleano(vLogico.getLexema());
+					TypeIF tipo=scopeManager.searchType("Boolean");
+					vB.setTipo(tipo);
+                  	RESULT=vB;
+                :}    
+                | FALSE:vLogico
+                {:
+                	ValorBooleano vB=new ValorBooleano(vLogico.getLexema());
+                	TypeIF tipo=scopeManager.searchType("Boolean");
+					vB.setTipo(tipo);
+                  	RESULT=vB;
+                :}
+                      ;
+
