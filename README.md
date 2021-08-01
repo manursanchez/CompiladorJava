@@ -11,16 +11,16 @@ Compilador desarrollado en Java donde se ha definido un lenguaje de programació
 El código final generado pertenece al conjunto de instrucciones máquina del simulador ENS2001 https://ens2001.falvarez.es/
 
 En el fichero scanner.flex se han definido los tokens del lenguaje.
-En el fichero parser.cup se ha trabajado la sintaxis, la semántica y las llamadas a métodos de clase para que ayudan a las comprobaciones semánticas. Si la sintaxis y la semántica es correcta, tambine se hacen llamadas a métodos para la generación de código intermedio y código final.
+En el fichero parser.cup se ha trabajado la sintaxis, la semántica y las llamadas a métodos de clase para que ayudan a las comprobaciones semánticas. Si la sintaxis y la semántica es correcta, tambine se hacen llamadas a métodos para la generación de código intermedio y código final. 
 
 Se crean dos clases de soporte en src/compiler/soporte/
 
 Soporte.java --> Contendrán todos los métodos necesarios para las comprobaciones semánticas.
 SoporteCI.java --> Métodos para generar el código intermedio.
 
-Hay que tener en cuenta que el código intermedio se irá creando desde las hojas del árbol gramatical (los terminales), y se irá propagando este código a través de todas las ramas, hasta llegar todo este código intermedio al inicio del árbol, momento en el cual se hará la llamada a los métodos que convierten ese código intermedio en final (el que interpreta el procesador).
+Hay que tener en cuenta que el código intermedio se irá creando desde las hojas del árbol gramatical (los terminales), y se irá propagando este código a través de todas las ramas, hasta llegar todo este código intermedio al inicio del árbol, momento en el cual se hará la llamada a los métodos que convierten ese código intermedio en final (el que interpreta el procesador). El método usado es LALR.
 
-La dificultad sobretodo está en la propagación del código intermedio. El método usado es LALR.
+### La dificultad sobretodo está en la propagación del código intermedio. Gracias a la programación orientada a objetos que Java nos proporciona, se usan los objetos para almacenar y propagar tanto el valor de las variables, expresiones y Código intermedio. El uso de objetos es fundamental para poder realizar este trabajo.
 
 En src/compiler/syntax/nonTerminal/ creamos las distintas clases y métodos para la gestión de los no-terminales
 
