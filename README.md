@@ -1,5 +1,13 @@
-# ProcesadoresLenguajes_II
-Segunda parte del desarrollo del compilador. En esta parte se desarrolla el semántico, código intermedio y código final.
+# Compilador desarrollado en Java
+
+Compilador desarrollado en Java donde se ha definido un lenguaje de programación. Se define e implementa: 
+- El léxico del lenguaje.
+- El sintático 
+- El semántico
+- Generación de Código Intermedio
+- Generación de Código Final.
+
+El código final generado pertenece al conjunto de instrucciones máquina del simulador ENS2001 https://ens2001.falvarez.es/
 
 Se trabaja sobre el parser.cup.
 
